@@ -27,10 +27,11 @@ public:
 
 private:
   lsDomainsType levelSets = nullptr;
-  lsDomainType surfaceLevelSet = nullptr;
   csDomainType cellSet = nullptr;
   bool useCellSet = false;
   NumericType cellSetDepth = 0.;
+  std::vector<std::string> materials;
+  std::unordered_map<std::string, int> materialIdMapping;
 
 public:
   psDomain(bool passedUseCellSet = false) : useCellSet(passedUseCellSet) {
@@ -40,13 +41,14 @@ public:
     }
   }
 
-  psDomain(lsDomainType passedLevelSet, bool passedUseCellSet = false,
-           const NumericType passedDepth = 0.,
+  psDomain(lsDomainType passedLevelSet,
+           std::string material = "defaultMaterial",
+           bool passedUseCellSet = false, const NumericType passedDepth = 0.,
            const bool passedCellSetPosition = false)
       : useCellSet(passedUseCellSet), cellSetDepth(passedDepth) {
     levelSets = lsDomainsType::New();
     levelSets->push_back(passedLevelSet);
-    surfaceLevelSet = lsDomainType::New(passedLevelSet);
+
     // generate CellSet
     if (useCellSet) {
       cellSet =
@@ -54,30 +56,29 @@ public:
     }
   }
 
-  psDomain(lsDomainsType passedLevelSets, bool passedUseCellSet = false,
-           const NumericType passedDepth = 0.,
-           const bool passedCellSetPosition = false)
-      : useCellSet(passedUseCellSet), cellSetDepth(passedDepth) {
-    levelSets = passedLevelSets;
-    surfaceLevelSet = lsDomainType::New(levelSets->front());
-    for (size_t i = 1; i < levelSets->size(); i++) {
-      lsBooleanOperation<NumericType, D>(surfaceLevelSet, levelSets->at(i),
-                                         lsBooleanOperationEnum::UNION)
-          .apply();
-    }
-    // generate CellSet
-    if (useCellSet) {
-      cellSet =
-          csDomainType::New(levelSets, cellSetDepth, passedCellSetPosition);
-    }
-  }
+  // psDomain(lsDomainsType passedLevelSets, bool passedUseCellSet = false,
+  //          const NumericType passedDepth = 0.,
+  //          const bool passedCellSetPosition = false)
+  //     : useCellSet(passedUseCellSet), cellSetDepth(passedDepth) {
+  //   levelSets = passedLevelSets;
+  //   surfaceLevelSet = lsDomainType::New(levelSets->front());
+  //   for (size_t i = 1; i < levelSets->size(); i++) {
+  //     lsBooleanOperation<NumericType, D>(surfaceLevelSet, levelSets->at(i),
+  //                                        lsBooleanOperationEnum::UNION)
+  //         .apply();
+  //   }
+  //   // generate CellSet
+  //   if (useCellSet) {
+  //     cellSet =
+  //         csDomainType::New(levelSets, cellSetDepth, passedCellSetPosition);
+  //   }
+  // }
 
   void deepCopy(psSmartPointer<psDomain> passedDomain) {
     levelSets->resize(passedDomain->levelSets->size());
     for (unsigned i = 0; i < levelSets->size(); ++i) {
       levelSets[i]->deepCopy(passedDomain->levelSets[i]);
     }
-    surfaceLevelSet = lsDomainType::New(passedDomain->getSurfaceLevelSet());
     useCellSet = passedDomain->useCellSet;
     if (useCellSet) {
       cellSetDepth = passedDomain->cellSetDepth;
@@ -152,6 +153,9 @@ public:
       cellSet = csDomainType::New();
     }
   }
+
+private:
+  int internalMaterialIdCounter = 0;
 };
 
 #endif // PS_DOMAIN_HPP

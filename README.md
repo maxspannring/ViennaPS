@@ -1,4 +1,7 @@
 # ViennaPS
+[![Linux](https://github.com/ViennaTools/ViennaPS/actions/workflows/linux_test.yml/badge.svg)](https://github.com/ViennaTools/ViennaPS/actions/workflows/linux_test.yml)
+[![macOS](https://github.com/ViennaTools/ViennaPS/actions/workflows/macos_test.yml/badge.svg)](https://github.com/ViennaTools/ViennaPS/actions/workflows/macos_test.yml)
+[![Windows](https://github.com/ViennaTools/ViennaPS/actions/workflows/windows_test.yml/badge.svg)](https://github.com/ViennaTools/ViennaPS/actions/workflows/windows_test.yml)
 
 ViennaPS is a header-only C++ process simulation library, which includes surface and volume representations, a ray tracer, and physical models for the simulation of microelectronic fabrication processes. 
 
@@ -32,7 +35,7 @@ Releases are tagged on the master branch and available in the [releases section]
 The CMake configuration automatically checks if the dependencies are installed. If CMake is unable to find them, the dependencies will be built from source with the _buildDependencies_ target.
 
 ```bash
-git clone github.com/ViennaTools/ViennaPS.git
+git clone https://github.com/ViennaTools/ViennaPS.git
 cd ViennaPS
 mkdir build && cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=/path/to/your/custom/install/
@@ -65,6 +68,7 @@ The examples can be built using CMake (make sure all dependencies are installed/
 ```bash
 mkdir build && cd build
 cmake .. -DVIENNAPS_BUILD_EXAMPLES=ON
+make buildExamples
 ```
 
 The examples can then be executed in their respective folders with the config files
@@ -74,7 +78,7 @@ The examples can then be executed in their respective folders with the config fi
 
 ### Trench Deposition
 
-This example contains a single particle deposition process in a trench geometry. By default, a 2D representation of the trench is simulated. However, 3D simulations are also possible by changing the constant variable _D_ in __TrenchDeposition.cpp__. In the __config.txt__ file the process and geometry parameters can be varied. 
+This example contains a single particle deposition process in a trench geometry. By default, a 2D representation of the trench is simulated. However, 3D simulations are also possible by setting the value of the constant _D_ in __TrenchDeposition.cpp__ to 3. In the __config.txt__ file the process and geometry parameters can be varied. 
 The picture show an example of the trench deposition process for various value of the particle sticking probability _s_.
 <div align="center">
   <img src="https://raw.githubusercontent.com/ViennaTools/ViennaPS/master/data/images/deposition.svg" width=700 style="background-color:white;">
@@ -93,13 +97,26 @@ By changing the dimension of the hole etching example (_D = 2_), we can easily s
   <img src="https://raw.githubusercontent.com/ViennaTools/ViennaPS/master/data/images/sidewall_tapering.svg" width=700 style="background-color:white;">
 </div>
 
+## Application
+
+It is also possible to build an application which can parse a custom configuration file and execute pre-defined processes. The application can be built using CMake (make sure all dependencies are installed/ have been built previously):
+```bash
+mkdir build && cd build
+cmake .. -DVIENNAPS_BUILD_APPLICATION=ON
+make buildApplication
+```
+This creates 2 executables `ViennaPS2D` and `ViennaPS3D` which run processes in 2 or 3 dimensions respectively. Every configuration file can be run in 2D or 3D mode.
+
+The configuration file must obey a certain structure in order to be parsed correctly. An example for a configuration file can be seen in _SampleConfig.txt_. The configuration file is parsed line by line and each succesfully parsed line is executed immediately. A detailed documentation for the configuration file can be found in **app/README.md**.
+
+
 ## Contributing
 
 If you want to contribute to ViennaPS, make sure to follow the [LLVM Coding guidelines](https://llvm.org/docs/CodingStandards.html). Before creating a pull request, make sure ALL files have been formatted by clang-format, which can be done using the format-project.sh script in the root directory.
 
 ## Authors
 
-Current contributors: Tobias Reiter, Josip Bobinac, Xaver Klemenschits, Julius Piso
+Current contributors: Tobias Reiter, Julius Piso, Josip Bobinac, Xaver Klemenschits
 
 Contact us via: viennatools@iue.tuwien.ac.at
 

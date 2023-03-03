@@ -4,7 +4,7 @@ project(ViennaPSExamples)
 
 include("${CMAKE_SOURCE_DIR}/cmake/prepare.cmake")
 
-find_package(ViennaPS CONFIG PATHS ${ViennaPS_BINARY_DIR})
+find_package(ViennaPS CONFIG PATHS ${ViennaPS_BINARY_DIR} NO_DEFAULT_PATH)
 if(NOT ViennaPS_FOUND)
   message(
     FATAL_ERROR
@@ -23,7 +23,8 @@ list(PREPEND VIENNAPS_INCLUDE_DIRS ${VIENNAPS_BUILD_INCLUDE_DIRS})
 # Add subfolders to the include directories, since during installation the directory structure is
 # flattened, but in the source tree - which we are using here - it is not.
 list(PREPEND VIENNAPS_INCLUDE_DIRS ${VIENNAPS_BUILD_INCLUDE_DIRS}/CellSet
-     ${VIENNAPS_BUILD_INCLUDE_DIRS}/Geometries ${VIENNAPS_BUILD_INCLUDE_DIRS}/Models)
+     ${VIENNAPS_BUILD_INCLUDE_DIRS}/Geometries ${VIENNAPS_BUILD_INCLUDE_DIRS}/Models
+     ${VIENNAPS_BUILD_INCLUDE_DIRS}/Compact)
 
 # Exclude the buildExamples target from the `all` target
 set_property(DIRECTORY PROPERTY EXCLUDE_FROM_ALL TRUE)

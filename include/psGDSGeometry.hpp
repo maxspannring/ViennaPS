@@ -9,6 +9,14 @@
 #include <psGDSUtils.hpp>
 #include <psSmartPointer.hpp>
 
+<<<<<<< HEAD
+=======
+    enum class psPointOrder {
+      CLOCKWISE,
+      COUNTER_CLOCKWISE
+    };
+
+>>>>>>> master
 template <class NumericType, int D = 3> class psGDSGeometry {
   using structureLayers =
       std::unordered_map<int16_t, psSmartPointer<lsMesh<NumericType>>>;
@@ -21,8 +29,11 @@ template <class NumericType, int D = 3> class psGDSGeometry {
   std::array<NumericType, 2> boundaryPadding = {0., 0.};
   std::array<NumericType, 2> minBounds;
   std::array<NumericType, 2> maxBounds;
+  psPointOrder pointOrder = psPointOrder::COUNTER_CLOCKWISE;
+  bool pointOrderFlag = true;
+  unsigned triangulationTimeOut = 100000000;
 
-  double bounds[2 * D];
+  double bounds[6];
   NumericType gridDelta;
   typename lsDomain<NumericType, D>::BoundaryType boundaryCons[3] = {
       lsDomain<NumericType, D>::BoundaryType::REFLECTIVE_BOUNDARY,
@@ -30,10 +41,33 @@ template <class NumericType, int D = 3> class psGDSGeometry {
       lsDomain<NumericType, D>::BoundaryType::INFINITE_BOUNDARY};
 
 public:
-  psGDSGeometry() {}
+  psGDSGeometry() {
+    if constexpr (D == 2) {
+      lsMessage::getInstance()
+          .addWarning("Cannot import 2D geometry from GDS file.")
+          .print();
+      return;
+    }
+  }
 
   psGDSGeometry(const NumericType passedGridDelta)
-      : gridDelta(passedGridDelta) {}
+      : gridDelta(passedGridDelta) {
+    if constexpr (D == 2) {
+      lsMessage::getInstance()
+          .addWarning("Cannot import 2D geometry from GDS file.")
+          .print();
+      return;
+    }
+  }
+
+  void setPointOrder(const psPointOrder passedPointOrder) {
+    pointOrder = passedPointOrder;
+    if (pointOrder == psPointOrder::CLOCKWISE) {
+      pointOrderFlag = false;
+    } else {
+      pointOrderFlag = true;
+    }
+  }
 
   void setGridDelta(const NumericType passedGridDelta) {
     gridDelta = passedGridDelta;
@@ -48,8 +82,8 @@ public:
   }
 
   void setBoundaryConditions(
-      typename lsDomain<NumericType, D>::BoundaryType passedBoundaryCons[D]) {
-    for (int i = 0; i < D; i++)
+      typename lsDomain<NumericType, D>::BoundaryType passedBoundaryCons[3]) {
+    for (int i = 0; i < 3; i++)
       boundaryCons[i] = passedBoundaryCons[i];
   }
 
@@ -115,16 +149,15 @@ public:
             if (sref.angle > 0.) {
               lsTransformMesh<NumericType>(
                   preBuiltStrMesh, lsTransformEnum::ROTATION,
-                  hrleVectorType<NumericType, 3>{0., 0., 1.},
-                  deg2rad(sref.angle))
+                  hrleVectorType<double, 3>{0., 0., 1.}, deg2rad(sref.angle))
                   .apply();
             }
 
             if (sref.magnification > 0.) {
               lsTransformMesh<NumericType>(
                   preBuiltStrMesh, lsTransformEnum::SCALE,
-                  hrleVectorType<NumericType, 3>{sref.magnification,
-                                                 sref.magnification, 1.})
+                  hrleVectorType<double, 3>{sref.magnification,
+                                            sref.magnification, 1.})
                   .apply();
             }
 
@@ -137,8 +170,8 @@ public:
 
             lsTransformMesh<NumericType>(
                 preBuiltStrMesh, lsTransformEnum::TRANSLATION,
-                hrleVectorType<NumericType, 3>{sref.refPoint[0],
-                                               sref.refPoint[1], 0.})
+                hrleVectorType<double, 3>{sref.refPoint[0], sref.refPoint[1],
+                                          0.})
                 .apply();
 
             strMesh->append(*preBuiltStrMesh);
@@ -158,8 +191,8 @@ public:
     if (mask) {
       auto topPlane = psSmartPointer<lsDomain<NumericType, D>>::New(
           bounds, boundaryCons, gridDelta);
-      NumericType normal[D] = {0., 0., 1.};
-      NumericType origin[D] = {0., 0., baseHeight + height};
+      NumericType normal[3] = {0., 0., 1.};
+      NumericType origin[3] = {0., 0., baseHeight + height};
       lsMakeGeometry<NumericType, D>(
           topPlane,
           lsSmartPointer<lsPlane<NumericType, D>>::New(origin, normal))
@@ -316,9 +349,7 @@ public:
     return {minBounds, maxBounds};
   }
 
-  std::vector<double> getBounds() {
-    return std::vector<double>(std::begin(bounds), std::end(bounds));
-  }
+  double *getBounds() { return bounds; }
 
   void addBox(psSmartPointer<lsDomain<NumericType, D>> levelSet,
               psGDSElement<NumericType> &element, const NumericType baseHeight,
@@ -398,27 +429,38 @@ public:
 
     // sidewalls
     for (unsigned i = 0; i < numPointsFlat; i++) {
-      std::array<NumericType, D> offsetPoint = element.pointCloud[i];
+      std::array<NumericType, 3> offsetPoint = element.pointCloud[i];
       offsetPoint[0] += xOffset;
       offsetPoint[1] += yOffset;
       offsetPoint[2] = baseHeight;
       mesh->insertNextNode(offsetPoint);
 
-      mesh->insertNextTriangle(std::array<unsigned, 3>{
-          i, (i + 1) % numPointsFlat, i + numPointsFlat});
+      if (pointOrderFlag) {
+        mesh->insertNextTriangle(std::array<unsigned, 3>{
+            i, (i + 1) % numPointsFlat, i + numPointsFlat});
+      } else {
+        mesh->insertNextTriangle(std::array<unsigned, 3>{
+            i + numPointsFlat, (i + 1) % numPointsFlat, i});
+      }
     }
 
     for (unsigned i = 0; i < numPointsFlat; i++) {
       unsigned upPoint = i + numPointsFlat;
-      std::array<NumericType, D> offsetPoint = element.pointCloud[i];
+      std::array<NumericType, 3> offsetPoint = element.pointCloud[i];
       offsetPoint[0] += xOffset;
       offsetPoint[1] += yOffset;
       offsetPoint[2] = baseHeight + height;
       mesh->insertNextNode(offsetPoint);
 
-      mesh->insertNextTriangle(std::array<unsigned, 3>{
-          upPoint, (upPoint + 1) % numPointsFlat,
-          (upPoint + 1) % numPointsFlat + numPointsFlat});
+      if (pointOrderFlag) {
+        mesh->insertNextTriangle(std::array<unsigned, 3>{
+            upPoint, (upPoint + 1) % numPointsFlat,
+            (upPoint + 1) % numPointsFlat + numPointsFlat});
+      } else {
+        mesh->insertNextTriangle(std::array<unsigned, 3>{
+            (upPoint + 1) % numPointsFlat + numPointsFlat,
+            (upPoint + 1) % numPointsFlat, upPoint});
+      }
     }
 
     // polygon triangulation (ear clipping algorithm)
@@ -433,17 +475,36 @@ public:
 
     unsigned numTriangles = 0;
     unsigned i = numPointsFlat - 1;
+    unsigned counter = 0;
     while (numTriangles < (numPointsFlat - 2)) {
       i = rightNeighbors[i];
       if (isEar(leftNeighbors[i], i, rightNeighbors[i], mesh, numPointsFlat)) {
-        mesh->insertNextTriangle(
-            std::array<unsigned, 3>{rightNeighbors[i], i, leftNeighbors[i]});
+        if (pointOrderFlag) {
+
+          mesh->insertNextTriangle(
+              std::array<unsigned, 3>{rightNeighbors[i], i, leftNeighbors[i]});
+        } else {
+          mesh->insertNextTriangle(
+              std::array<unsigned, 3>{leftNeighbors[i], i, rightNeighbors[i]});
+        }
 
         // remove point
         leftNeighbors[rightNeighbors[i]] = leftNeighbors[i];
         rightNeighbors[leftNeighbors[i]] = rightNeighbors[i];
 
         numTriangles++;
+      }
+
+      if (counter++ > triangulationTimeOut) {
+        std::string changePointOrder = pointOrderFlag
+                                           ? "psPointOrder::CLOCKWISE"
+                                           : "psPointOrder::COUNTER_CLOCKWISE";
+        lsMessage::getInstance()
+            .addError("Timeout in surface triangulation. Point order in "
+                      "GDS file might be incompatible. Try changing the "
+                      "order by setting setPointOder(" +
+                      changePointOrder + ") in current geometry.")
+            .print();
       }
     }
 
@@ -467,9 +528,10 @@ public:
     auto &points = mesh->getNodes();
 
     // check if triangle is clockwise orientated
-    if ((points[i][0] * points[j][1] + points[i][1] * points[k][0] +
-         points[j][0] * points[k][1] - points[k][0] * points[j][1] -
-         points[k][1] * points[i][0] - points[j][0] * points[i][1]) < 0.)
+    if (((points[i][0] * points[j][1] + points[i][1] * points[k][0] +
+          points[j][0] * points[k][1] - points[k][0] * points[j][1] -
+          points[k][1] * points[i][0] - points[j][0] * points[i][1]) < 0.) !=
+        !pointOrderFlag)
       return false;
 
     for (unsigned m = 0; m < numPoints; m++) {

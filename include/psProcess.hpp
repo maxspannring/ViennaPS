@@ -7,13 +7,13 @@
 #include <lsMessage.hpp>
 #include <lsToDiskMesh.hpp>
 
+#include <psAdvectionCallback.hpp>
 #include <psDomain.hpp>
 #include <psProcessModel.hpp>
 #include <psSmartPointer.hpp>
 #include <psSurfaceModel.hpp>
 #include <psTranslationField.hpp>
 #include <psVelocityField.hpp>
-#include <psVolumeModel.hpp>
 
 #include <rayBoundCondition.hpp>
 #include <rayParticle.hpp>
@@ -52,21 +52,44 @@ public:
     integrationScheme = passedIntegrationScheme;
   }
 
-  void setPrintIntermediateSteps(const bool printSteps) {
-    printIntermediateSteps = printSteps;
+  void setPrintIntdermediate(const bool passedPrint) {
+    printIntermediate = passedPrint;
   }
 
   void apply() {
     /* ---------- Process Setup --------- */
+    if (!model) {
+      lsMessage::getInstance()
+          .addWarning("No process model passed to psProcess.")
+          .print();
+      return;
+    }
     auto name = model->getProcessName();
+
+    if (!domain) {
+      lsMessage::getInstance()
+          .addWarning("No domain passed to psProcess.")
+          .print();
+      return;
+    }
+
+    if (model->getGeometricModel()) {
+      model->getGeometricModel()->setDomain(domain);
+#ifdef VIENNAPS_VERBOSE
+      std::cout << "Applying geometric model..." << std::endl;
+#endif
+      model->getGeometricModel()->apply();
+      return;
+    }
+
     if (processDuration == 0.) {
-      // apply only volume model
-      if (model->getVolumeModel()) {
-        model->getVolumeModel()->setDomain(domain);
-        model->getVolumeModel()->applyPreAdvect(0);
+      // apply only advection callback
+      if (model->getAdvectionCallback()) {
+        model->getAdvectionCallback()->setDomain(domain);
+        model->getAdvectionCallback()->applyPreAdvect(0);
       } else {
         lsMessage::getInstance()
-            .addWarning("No volume model passed to psProcess.")
+            .addWarning("No advection callback passed to psProcess.")
             .print();
       }
       return;
@@ -89,7 +112,8 @@ public:
     lsToDiskMesh<NumericType, D> meshConverter(diskMesh);
     meshConverter.setTranslator(translator);
 
-    auto transField = psSmartPointer<psTranslationField<NumericType>>::New();
+    auto transField = psSmartPointer<psTranslationField<NumericType>>::New(
+        model->getVelocityField()->useTranslationField());
     transField->setTranslator(translator);
     transField->setVelocityField(model->getVelocityField());
 
@@ -123,24 +147,22 @@ public:
       rayTrace.setCalculateFlux(false);
     }
 
-    // Determine whether volume model is used
-    const bool useVolumeModel = model->getVolumeModel() != nullptr;
-    if (useVolumeModel) {
-      assert(domain->getUseCellSet());
-      model->getVolumeModel()->setDomain(domain);
+    // Determine whether advection callback is used
+    const bool useAdvectionCallback = model->getAdvectionCallback() != nullptr;
+    if (useAdvectionCallback) {
+      model->getAdvectionCallback()->setDomain(domain);
     }
 
     // Determine whether there are process parameters used in ray tracing
-    if (model->getSurfaceModel())
-      model->getSurfaceModel()->initializeProcessParameters();
+    model->getSurfaceModel()->initializeProcessParameters();
     const bool useProcessParams =
         model->getSurfaceModel()->getProcessParameters() != nullptr;
 
 #ifdef VIENNAPS_VERBOSE
     if (useProcessParams)
       std::cout << "Using process parameters." << std::endl;
-    if (useVolumeModel)
-      std::cout << "Using volume model." << std::endl;
+    if (useAdvectionCallback)
+      std::cout << "Using advection callback." << std::endl;
 #endif
 
     bool useCoverages = false;
@@ -221,8 +243,9 @@ public:
             diskMesh->getCellData().insertNextScalarData(
                 *Rates->getScalarData(idx), label);
           }
-          printDiskMesh(diskMesh, name + "_covIinit_" +
-                                      std::to_string(iterations) + ".vtp");
+          if (printIntermediate)
+            printDiskMesh(diskMesh, name + "_covIinit_" +
+                                        std::to_string(iterations) + ".vtp");
           std::cerr << "\r"
                     << "Iteration: " << iterations + 1 << " / "
                     << maxIterations;
@@ -297,17 +320,15 @@ public:
       model->getVelocityField()->setVelocities(velocitites);
 
 #ifdef VIENNAPS_VERBOSE
-      if (printIntermediateSteps) {
-        if (velocitites)
-          diskMesh->getCellData().insertNextScalarData(*velocitites,
-                                                       "velocities");
-        if (useCoverages) {
-          auto coverages = model->getSurfaceModel()->getCoverages();
-          for (size_t idx = 0; idx < coverages->getScalarDataSize(); idx++) {
-            auto label = coverages->getScalarDataLabel(idx);
-            diskMesh->getCellData().insertNextScalarData(
-                *coverages->getScalarData(idx), label);
-          }
+      if (velocitites)
+        diskMesh->getCellData().insertNextScalarData(*velocitites,
+                                                     "velocities");
+      if (useCoverages) {
+        auto coverages = model->getSurfaceModel()->getCoverages();
+        for (size_t idx = 0; idx < coverages->getScalarDataSize(); idx++) {
+          auto label = coverages->getScalarDataLabel(idx);
+          diskMesh->getCellData().insertNextScalarData(
+              *coverages->getScalarData(idx), label);
         }
         for (size_t idx = 0; idx < Rates->getScalarDataSize(); idx++) {
           auto label = Rates->getScalarDataLabel(idx);
@@ -317,11 +338,26 @@ public:
         printDiskMesh(diskMesh,
                       name + "_" + std::to_string(counter++) + ".vtp");
       }
+      for (size_t idx = 0; idx < Rates->getScalarDataSize(); idx++) {
+        auto label = Rates->getScalarDataLabel(idx);
+        diskMesh->getCellData().insertNextScalarData(*Rates->getScalarData(idx),
+                                                     label);
+      }
+      if (printIntermediate)
+        printDiskMesh(diskMesh,
+                      name + "_" + std::to_string(counter++) + ".vtp");
 #endif
-      // apply volume model
-      if (useVolumeModel) {
-        model->getVolumeModel()->applyPreAdvect(processDuration -
-                                                remainingTime);
+      // apply advection callback
+      if (useAdvectionCallback) {
+        bool continueProcess = model->getAdvectionCallback()->applyPreAdvect(
+            processDuration - remainingTime);
+        if (!continueProcess) {
+#ifdef VIENNAPS_VERBOSE
+          std::cout << "Process stopped early by AdvectionCallback during "
+                       "`preAdvect`.\n";
+#endif
+          break;
+        }
       }
 
       // move coverages to LS, so they get are moved with the advection step
@@ -336,11 +372,19 @@ public:
         updateCoveragesFromAdvectedSurface(
             translator, model->getSurfaceModel()->getCoverages());
 
-      // apply volume model
-      if (useVolumeModel) {
-        domain->getCellSet()->updateSurface();
-        model->getVolumeModel()->applyPostAdvect(
+      // apply advection callback
+      if (useAdvectionCallback) {
+        if (domain->getUseCellSet())
+          domain->getCellSet()->updateSurface();
+        bool continueProcess = model->getAdvectionCallback()->applyPostAdvect(
             advectionKernel.getAdvectedTime());
+        if (!continueProcess) {
+#ifdef VIENNAPS_VERBOSE
+          std::cout << "Process stopped early by AdvectionCallback during "
+                       "`postAdvect`.\n";
+#endif
+          break;
+        }
       }
 
       remainingTime -= advectionKernel.getAdvectedTime();
@@ -460,13 +504,13 @@ private:
   NumericType processDuration;
   rayTraceDirection sourceDirection =
       D == 3 ? rayTraceDirection::POS_Z : rayTraceDirection::POS_Y;
+  lsIntegrationSchemeEnum integrationScheme =
+      lsIntegrationSchemeEnum::ENGQUIST_OSHER_1ST_ORDER;
   long raysPerPoint = 1000;
   bool useRandomSeeds = true;
   size_t maxIterations = 20;
   bool coveragesInitialized = false;
-  bool printIntermediateSteps = false;
-  lsIntegrationSchemeEnum integrationScheme =
-      lsIntegrationSchemeEnum::ENGQUIST_OSHER_1ST_ORDER;
+  bool printIntermediate = true;
 };
 
 #endif

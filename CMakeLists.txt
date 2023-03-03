@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
 project("ViennaPS" VERSION 1.0.0)
 
@@ -24,6 +24,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS
       TRUE
       CACHE BOOL "Export all symbols")
+  add_compile_definitions(_USE_MATH_DEFINES)
 endif()
 
 set(ViennaPS_BINARY_DIR
@@ -77,6 +78,14 @@ if(VIENNAPS_BUILD_EXAMPLES)
 endif(VIENNAPS_BUILD_EXAMPLES)
 
 # ##################################################################################################
+# BUILD VIENNAPS APPLICATION
+# ##################################################################################################
+option(VIENNAPS_BUILD_APPLICATION "Build ViennaPS application." OFF)
+if(VIENNAPS_BUILD_APPLICATION)
+  add_subdirectory(app)
+endif(VIENNAPS_BUILD_APPLICATION)
+
+# ##################################################################################################
 # INSTALL
 # ##################################################################################################
 
@@ -100,3 +109,12 @@ install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
 file(GLOB_RECURSE HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.hpp")
 
 install(FILES ${HEADER_FILES} DESTINATION "include")
+
+# uninstall target
+if(NOT TARGET uninstall)
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+                 "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
+                                      ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+endif()

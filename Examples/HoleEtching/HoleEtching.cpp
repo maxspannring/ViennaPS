@@ -1,20 +1,26 @@
 #include <Geometries/psMakeHole.hpp>
 #include <SF6O2Etching.hpp>
-#include <psConfigParser.hpp>
 #include <psProcess.hpp>
 #include <psToSurfaceMesh.hpp>
-#include <psVTKWriter.hpp>
+#include <psUtils.hpp>
+
+#include "Parameters.hpp"
 
 int main(int argc, char *argv[]) {
   using NumericType = double;
   constexpr int D = 3;
 
   // Parse the parameters
-  psProcessParameters<NumericType> params;
+  int P, y;
+
+  Parameters<NumericType> params;
   if (argc > 1) {
-    psConfigParser<NumericType> parser(argv[1]);
-    parser.apply();
-    params = parser.getParameters();
+    auto config = psUtils::readConfigFile(argv[1]);
+    if (config.empty()) {
+      std::cerr << "Empty config provided" << std::endl;
+      return -1;
+    }
+    params.fromMap(config);
   }
 
   auto geometry = psSmartPointer<psDomain<NumericType, D>>::New();
@@ -22,7 +28,8 @@ int main(int argc, char *argv[]) {
       geometry, params.gridDelta /* grid delta */, params.xExtent /*x extent*/,
       params.yExtent /*y extent*/, params.holeRadius /*hole radius*/,
       params.maskHeight /* mask height*/,
-      params.taperAngle /* tapering angle in degrees */, true /*create mask*/)
+      params.taperAngle /* tapering angle in degrees */, 0 /* base height */,
+      false /* periodic boundary */, true /*create mask*/)
       .apply();
 
   SF6O2Etching<NumericType, D> model(params.totalIonFlux /*ion flux*/,
@@ -39,14 +46,11 @@ int main(int argc, char *argv[]) {
   process.setNumberOfRaysPerPoint(1000);
   process.setProcessDuration(params.processTime);
 
-  auto mesh = psSmartPointer<lsMesh<NumericType>>::New();
-  psToSurfaceMesh<NumericType, D>(geometry, mesh).apply();
-  psVTKWriter<NumericType>(mesh, "initial.vtp").apply();
+  geometry->printSurface("initial.vtp");
 
   process.apply();
 
-  psToSurfaceMesh<NumericType, D>(geometry, mesh).apply();
-  psVTKWriter<NumericType>(mesh, "final.vtp").apply();
+  geometry->printSurface("final.vtp");
 
   return EXIT_SUCCESS;
 }

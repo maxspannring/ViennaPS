@@ -17,8 +17,9 @@
 #define endian_swap_short(w) (((w & 0xff) << 8) | ((w & 0xff00) >> 8))
 #endif
 
-template <typename NumericType, int D = 3> class psGDSReader {
-  using PSPtrType = psSmartPointer<psGDSGeometry<NumericType, D>>;
+template <typename NumericType> class psGDSReader {
+  using PSPtrType = psSmartPointer<psGDSGeometry<NumericType>>;
+  static constexpr int D = 3;
 
   FILE *filePtr = nullptr;
   PSPtrType geometry = nullptr;

@@ -17,9 +17,9 @@ int main(int argc, char **argv) {
         lsDomain<NumericType, D>::BoundaryType::REFLECTIVE_BOUNDARY;
   boundaryCons[D - 1] =
       lsDomain<NumericType, D>::BoundaryType::INFINITE_BOUNDARY;
-  auto mask = psSmartPointer<psGDSGeometry<NumericType, D>>::New(gridDelta);
+  auto mask = psSmartPointer<psGDSGeometry<NumericType>>::New(gridDelta);
   mask->setBoundaryConditions(boundaryCons);
-  psGDSReader<NumericType, D>(mask, "mask.gds").apply();
+  psGDSReader<NumericType>(mask, "mask.gds").apply();
 
   // geometry setup
   double *bounds = mask->getBounds();

@@ -9,15 +9,10 @@
 #include <psGDSUtils.hpp>
 #include <psSmartPointer.hpp>
 
-<<<<<<< HEAD
-=======
-    enum class psPointOrder {
-      CLOCKWISE,
-      COUNTER_CLOCKWISE
-    };
+enum class psPointOrder { CLOCKWISE, COUNTER_CLOCKWISE };
 
->>>>>>> master
-template <class NumericType, int D = 3> class psGDSGeometry {
+template <class NumericType> class psGDSGeometry {
+  static constexpr int D = 3;
   using structureLayers =
       std::unordered_map<int16_t, psSmartPointer<lsMesh<NumericType>>>;
 
@@ -33,32 +28,18 @@ template <class NumericType, int D = 3> class psGDSGeometry {
   bool pointOrderFlag = true;
   unsigned triangulationTimeOut = 100000000;
 
-  double bounds[6];
+  double bounds[2 * D];
   NumericType gridDelta;
-  typename lsDomain<NumericType, D>::BoundaryType boundaryCons[3] = {
+  typename lsDomain<NumericType, D>::BoundaryType boundaryCons[D] = {
       lsDomain<NumericType, D>::BoundaryType::REFLECTIVE_BOUNDARY,
       lsDomain<NumericType, D>::BoundaryType::REFLECTIVE_BOUNDARY,
       lsDomain<NumericType, D>::BoundaryType::INFINITE_BOUNDARY};
 
 public:
-  psGDSGeometry() {
-    if constexpr (D == 2) {
-      lsMessage::getInstance()
-          .addWarning("Cannot import 2D geometry from GDS file.")
-          .print();
-      return;
-    }
-  }
+  psGDSGeometry() {}
 
   psGDSGeometry(const NumericType passedGridDelta)
-      : gridDelta(passedGridDelta) {
-    if constexpr (D == 2) {
-      lsMessage::getInstance()
-          .addWarning("Cannot import 2D geometry from GDS file.")
-          .print();
-      return;
-    }
-  }
+      : gridDelta(passedGridDelta) {}
 
   void setPointOrder(const psPointOrder passedPointOrder) {
     pointOrder = passedPointOrder;

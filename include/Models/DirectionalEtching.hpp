@@ -61,7 +61,7 @@ public:
   DirectionalEtching(const std::array<NumericType, 3> direction,
                      const NumericType directionalVelocity = 1.,
                      const NumericType isotropicVelocity = 0.,
-                     const int maskId = 0) {
+                     const int maskId = -1) {
     processModel = psSmartPointer<psProcessModel<NumericType, D>>::New();
 
     // surface model

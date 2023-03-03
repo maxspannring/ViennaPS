@@ -42,7 +42,7 @@ public:
     for (const auto ls : *domain->getLevelSets()) {
       meshConverter.insertNextLevelSet(ls);
     }
-    meshConverter.insertNextLevelSet(domain->getSurfaceLevelSet());
+    meshConverter.insertNextLevelSet(domain->getWrappingLevelSet());
     meshConverter.apply();
   }
 };

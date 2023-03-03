@@ -23,17 +23,21 @@ public:
   NumericType height = 0.;
   bool periodicBoundary = false;
   bool add = false;
+  std::string material;
 
-  psMakePlane(PSPtrType passedDomain, NumericType passedHeight = 0.,
-              bool passedAdd = false)
-      : domain(passedDomain), height(passedHeight), add(passedAdd) {}
+  psMakePlane(PSPtrType passedDomain,
+              std::string passedMaterial = "defaultMaterial",
+              NumericType passedHeight = 0., bool passedAdd = false)
+      : domain(passedDomain), height(passedHeight), add(passedAdd),
+        material(passedMaterial) {}
 
   psMakePlane(PSPtrType passedDomain, const NumericType passedGridDelta,
               const NumericType passedXExtent, const NumericType passedYExtent,
-              const NumericType passedHeight, const bool passedPeriodic = false)
+              const NumericType passedHeight, std::string passedMaterial,
+              const bool passedPeriodic = false)
       : domain(passedDomain), gridDelta(passedGridDelta),
         xExtent(passedXExtent), yExtent(passedYExtent), height(passedHeight),
-        periodicBoundary(passedPeriodic) {}
+        periodicBoundary(passedPeriodic), material(passedMaterial) {}
 
   void apply() {
     if (add) {

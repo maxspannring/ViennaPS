@@ -27,7 +27,7 @@ private:
   using gridType = psSmartPointer<lsMesh<T>>;
   using levelSetsType =
       psSmartPointer<std::vector<psSmartPointer<lsDomain<T, D>>>>;
-  using materialMapType = psSmartPointer<psMaterialMap>;
+  using materialMapType = psSmartPointer<psMaterialMap<T>>;
 
   levelSetsType levelSets = nullptr;
   gridType cellGrid = nullptr;

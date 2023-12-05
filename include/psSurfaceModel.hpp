@@ -9,8 +9,13 @@ template <typename NumericType> class psSurfaceModel {
 protected:
   psSmartPointer<psPointData<NumericType>> Coverages = nullptr;
   psSmartPointer<psProcessParams<NumericType>> processParams = nullptr;
+  psSmartPointer<psMaterialMap<NumericType>> materials = nullptr;
 
 public:
+  void setMaterialMap(psSmartPointer<psMaterialMap<NumericType>> pMaterials) {
+    materials = pMaterials;
+  }
+
   virtual void initializeCoverages(unsigned numGeometryPoints) {
     // if no coverages get initialized here, they wont be used at all
   }

@@ -143,6 +143,7 @@ public:
           .print();
       return;
     }
+    model->getSurfaceModel()->setMaterialMap(domain->getMaterialMap());
 
     psUtils::Timer processTimer;
     processTimer.start();

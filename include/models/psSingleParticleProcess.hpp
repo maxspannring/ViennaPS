@@ -9,13 +9,9 @@
 namespace SingleParticleImplementation {
 template <typename NumericType, int D>
 class SurfaceModel : public psSurfaceModel<NumericType> {
-  const NumericType rateFactor;
-  const psMaterial mask;
+  using psSurfaceModel<NumericType, D>::materials;
 
 public:
-  SurfaceModel(const NumericType pRate, const psMaterial pMask)
-      : rateFactor(pRate), mask(pMask) {}
-
   psSmartPointer<std::vector<NumericType>> calculateVelocities(
       psSmartPointer<psPointData<NumericType>> Rates,
       const std::vector<std::array<NumericType, 3>> &coordinates,
@@ -26,9 +22,7 @@ public:
     auto flux = Rates->getScalarData("particleFlux");
 
     for (std::size_t i = 0; i < rate->size(); i++) {
-      if (!psMaterialMap::isMaterial(materialIds[i], mask)) {
-        rate->at(i) = flux->at(i) * rateFactor;
-      }
+      rate->at(i) = flux->at(i) * materials->getMaterial(materialIds[i]).rate;
     }
 
     return rate;
@@ -90,8 +84,8 @@ public:
         stickingProbability, sourceDistributionPower);
 
     // surface model
-    auto surfModel = psSmartPointer<SingleParticleImplementation::SurfaceModel<
-        NumericType, D>>::New(rate, maskMaterial);
+    auto surfModel = psSmartPointer<
+        SingleParticleImplementation::SurfaceModel<NumericType, D>>::New();
 
     // velocity field
     auto velField = psSmartPointer<psDefaultVelocityField<NumericType>>::New();

@@ -82,14 +82,14 @@ public:
 
   inline std::size_t size() const { return map->getNumberOfLayers(); }
 
-  inline auto getMaterial(const int id) const {
+  inline auto &getMaterial(const int id) const {
     if (id >= uniqueMaterials.size()) {
       psLogger::getInstance().addError("Can not get unknown material.").print();
     }
     return uniqueMaterials[id];
   }
 
-  auto getMaterial(const std::string searchLabel) const {
+  auto &getMaterial(const std::string searchLabel) const {
     int id = containsMaterial({0., searchLabel, nullptr});
     if (id < 0) {
       psLogger::getInstance().addError("Can not get unknown material.").print();

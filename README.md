@@ -101,7 +101,7 @@ make buildExamples
 
 The examples can then be executed in their respective build folders with the config files, e.g.:
 ```bash
-cd Examples/ExampleName
+cd examples/exampleName
 ./ExampleName config.txt
 ```
 
@@ -134,6 +134,18 @@ This example demonstrates capturing etching byproducts and the subsequent redepo
 <div align="center">
   <img src="https://raw.githubusercontent.com/ViennaTools/ViennaPS/master/data/images/redeposition.gif" width=700 style="background-color:white;">
 </div>
+
+## Tests
+
+ViennaPS uses CTest to run its tests. In order to check whether ViennaPS runs without issues on your system, you can run:
+> __Important__: Make sure all dependencies are installed and have been built previously
+
+```bash
+mkdir build && cd build
+cmake .. -DVIENNAPS_BUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=DEBUG
+make buildTests
+ctest -C Debug
+```
 
 ## Application
 

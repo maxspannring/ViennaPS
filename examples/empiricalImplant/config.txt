@@ -1,0 +1,12 @@
+# Config file for an implant example process
+# Domain
+gridDelta=1.
+xExtent=30.
+yExtent=30.
+
+# Geometry
+trenchWidth=20.
+trenchHeight=4.
+
+# Implant Parameters
+

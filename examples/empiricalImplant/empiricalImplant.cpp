@@ -2,6 +2,7 @@
 #include <psImplant.hpp>
 #include <psImplantGaussModel.hpp>
 #include <psMakeTrench.hpp>
+#include <psMakePlane.hpp>
 
 #include "parameters.hpp"
 
@@ -26,7 +27,9 @@ int main(int argc, char **argv) {
                                params.trenchHeight, 0., 0., false, true,
                                psMaterial::Si)
       .apply();
-  geometry->generateCellSet(-10., psMaterial::Si, false);
+
+  psMakePlane<NumericType, D>(geometry, 30, psMaterial::Si).apply();
+  geometry->generateCellSet(0., psMaterial::Si, false);
 
   auto implantModel =
       psSmartPointer<psImplantGaussModel<NumericType, D>>::New();

@@ -8,15 +8,14 @@
 template <typename T> struct Parameters {
   // Domain
   T gridDelta = 1.;
-  T xExtent = 30.;
-  T yExtent = 30.;
+  T xExtent = 60.;
+  T yExtent = 600.;
 
   // Geometry
   T trenchWidth = 20.;
   T trenchHeight = 4.;
 
   // Process
-
   Parameters() {}
 
   void fromMap(std::unordered_map<std::string, std::string> &m) {
